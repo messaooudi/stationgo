@@ -21,7 +21,7 @@ class MainApp {
         $reactive(this).attach($scope);
         var vm = this;
         Tracker.autorun(() => {
-            if (!Meteor.status().connected&&!Meteor.user()) {
+            if (false&&!Meteor.status().connected&&!Meteor.user()) {
                 $state.go('connectionError');
             } else {
                 if (Meteor.user())

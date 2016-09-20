@@ -89,6 +89,18 @@ class Settings {
                 }
             });
         }
+        
+         vm.connectionToast = {
+            _show: false,
+            setShow: function (val) {
+                this._show = val;
+            },
+        }
+
+
+        Tracker.autorun(() => {
+            vm.connectionToast.setShow(!Meteor.status().connected)
+        })
 
     }
 
