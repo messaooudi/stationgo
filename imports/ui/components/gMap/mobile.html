@@ -1,0 +1,664 @@
+<!-- 
+        mapShadow : {
+        _show : boolean,
+        show : function,
+        hide : function,
+        click : function
+        }
+    -->
+
+<!--
+    direction : {
+        _show : boolean,
+        _showPanel : boolean,
+        station : Object,
+        show : function,
+        hide : function,
+        togglePanel:function,
+        showPanel : function,
+        hidePanel: function
+    }
+-->
+
+<div id="map-shadow" ng-if="gMap.mapShadow._show" ng-click="gMap.mapShadow.click()"></div>
+<div id="mapid">
+</div>
+
+<div id="info-window-panel">
+    <div class="panel panel-default" style="text-align: center;">
+        <div class="panel-heading clearfix">
+            <h3 class="panel-title">{{gMap.station.nom}} <span ng-show="!gMap.station.open" class="label label-danger">fermée</span></h3>
+            <div class="stars">
+                <form>
+                    <input class="star star-5" id="_star-5{{$index}}" type="radio" name="star" ng-disabled="true" ng-checked="(statigMap.station.likes/gMap.stationList.globaleLikes)>=0.8&&(gMap.station.likes/gMap.stationList.globaleLikes)<=1"
+                    />
+                    <label class="star star-5" for="_star-5{{$index}}"></label>
+                    <input class="star star-4" id="_star-4{{$index}}" type="radio" name="star" ng-disabled="true" ng-checked="(gMap.station.likes/gMap.stationList.globaleLikes)>=0.6&&(gMap.station.likes/gMap.stationList.globaleLikes)<=0.8"
+                    />
+                    <label class="star star-4" for="_star-4{{$index}}"></label>
+                    <input class="star star-3" id="_star-3{{$index}}" type="radio" name="star" ng-disabled="true" ng-checked="(gMap.station.likes/gMap.stationList.globaleLikes)>=0.4&&(gMap.station.likes/gMap.stationList.globaleLikes)<=0.6"
+                    />
+                    <label class="star star-3" for="_star-3{{$index}}"></label>
+                    <input class="star star-2" id="_star-2{{$index}}" type="radio" name="star" ng-disabled="true" ng-checked="(gMap.station.likes/gMap.stationList.globaleLikes)>=0.2&&(gMap.station.likes/gMap.stationList.globaleLikes)<=0.4"
+                    />
+                    <label class="star star-2" for="_star-2{{$index}}"></label>
+                    <input class="star star-1" id="_star-1{{$index}}" type="radio" name="star" ng-disabled="true" ng-checked="(gMap.station.likes/gMap.stationList.globaleLikes)>=0.04&&(gMap.station.likes/gMap.stationList.globaleLikes)<=0.2"
+                    />
+                    <label class="star star-1" for="_star-1{{$index}}"></label>
+                </form>
+            </div>
+        </div>
+        <div class="panel-body">
+            {{gMap.station.address}}
+            </br>
+            {{gMap.station.distance.text}} | {{gMap.station.duration.text}}
+            <div ng-if="gMap.station.number">
+                <i class="fa fa-phone" aria-hidden="true"></i>&nbsp0{{gMap.station.number}}
+            </div>
+            <hr>
+            <h4>Gasoil: <span class="label label-primary">{{gMap.station.gasoil.prix}} DH </span> <span ng-show="!gMap.station.gasoil.dispo" class="label label-danger">a vide</span></h4>
+            <h4>Essence: <span class="label label-primary">{{gMap.station.essence.prix}} DH </span> <span ng-show="!gMap.station.essence.dispo" class="label label-danger">a vide</span></h4>
+
+        </div>
+        <div class="panel-footer">
+            <button id="goButton" type="button" class="btn btn-default">Go</button>
+            <button id="editButton" ng-show="gMap.user._id == gMap.station.owner" type="button" class="btn btn-default">Modifier</button>
+        </div>
+    </div>
+</div>
+
+<div id="direction-header" ng-if="gMap.direction._show">
+    <a href="#" class="btn btn-primary" ng-click="gMap.direction.hide()">
+        <i class="fa fa-chevron-circle-left fa-lg" aria-hidden="true"></i>
+    </a>
+    <a href="#" class="btn btn-primary">{{gMap.direction.station.nom}} | {{gMap.direction.summary.totalDistance}} | {{gMap.direction.summary.totalTime}}</a>
+</div>
+
+<!-- 
+    sideBarTrigger = {
+        _show : boolean
+        click : function, 
+        show : function,
+        hide : function,
+    }
+-->
+<div id="side-bar-trigger" ng-if="gMap.sideBarTrigger._show">
+    <button type="button" class="btn btn-primary" ng-click="gMap.sideBarTrigger.click()">
+        <i class="fa fa-bars" aria-hidden="true"></i>
+    </button>
+</div>
+<!-- 
+    sideBarPanel = {
+        _show : boolean
+        _showOwnerStations : boolean,
+        showOwnerStations : function,
+        hideOwnerStations : function
+        toggle : function, 
+        show : function,
+        hide : function,
+        addStationTrigger : function,
+        logOutTrigger : function,
+    }
+-->
+
+<div id="owner-station-header" ng-if="gMap.sideBarPanel._showOwnerStations">
+    <a href="#" class="btn btn-primary" ng-click="gMap.sideBarPanel.hideOwnerStations()">
+        <i class="fa fa-chevron-circle-left fa-lg" aria-hidden="true"></i>
+    </a>
+</div>
+<div id="side-bar-panel" ng-if="gMap.sideBarPanel._show">
+    <nav class="navbar navbar-inverse" id="sidebar-wrapper" role="navigation">
+        <ul class="nav sidebar-nav">
+            <li class="sidebar-brand">
+                <a>
+                    <h5>{{gMap.user.emails[0].address}}</h5>
+                </a>
+            </li>
+            <li>
+                <a class="sideBarItem" ng-click="gMap.sideBarPanel.showOwnerStations()">Mes stations &nbsp <i class="fa fa-map-marker" aria-hidden="true"></i></span></a>
+            </li>
+            <li>
+                <a class="sideBarItem" ng-click="gMap.sideBarPanel.addStationTrigger()">Ajouter une station &nbsp <i class="fa fa-plus-square" aria-hidden="true"></i></a>
+            </li>
+            <li>
+                <a class="sideBarItem" ng-click="gMap.sideBarPanel.settingsTrigger()">Settings &nbsp <i class="fa fa-cogs" aria-hidden="true"></i></a>
+            </li>
+            <li>
+                <a class="sideBarItem" ng-click="gMap.sideBarPanel.logOutTrigger()">Logout &nbsp <i class="fa fa-sign-out" aria-hidden="true"></i></a>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+
+
+<!-- 
+    settingsPanel = {
+        _show : boolean,
+        orderBy : {text : String,value:'String'},
+        showCloseStation : boolean,
+        showNoEssence : boolean,
+        showNoGasoil : boolean,
+        
+        setOrderBy : function,
+        getOrderBy : function,
+        setShowCloseStation : function,
+        getShowCloseStation: function,
+        setShowNoEssence : function,
+        setShowNoGasoil : function,
+               
+        toggle : function, 
+        show : function,
+        hide : function,
+        radiusTrigger,function
+    }
+-->
+
+<div id="settings-panel" ng-show="gMap.settingsPanel._show">
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <a href="#" class="btn btn-primary" ng-click="gMap.settingsPanel.hide()">
+                <i class="fa fa-chevron-circle-left fa-lg" aria-hidden="true"></i>
+            </a>
+        </div>
+        <div class="panel-body">
+            Ordonner par :
+            <div class="btn-group">
+                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    {{gMap.settingsPanel.orderBy.text}} <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a href="#" ng-click="gMap.settingsPanel.setOrderBy({text : 'distance',value : 'distance.value'})"><i class="fa fa-clock-o" aria-hidden="true"></i> distance</a>
+                    </li>
+                    <li><a href="#" ng-click="gMap.settingsPanel.setOrderBy({text : 'essence',value : 'essence.prix'})"><i class="fa fa-money" aria-hidden="true"></i> prix essence</a></li>
+                    <li><a href="#" ng-click="gMap.settingsPanel.setOrderBy({text : 'gasoil',value : 'gasoil.prix'})"><i class="fa fa-money" aria-hidden="true"></i> prix gasoil</a></li>
+                </ul>
+            </div>
+            <hr> Zone de recherche : {{(gMap.radiusPanel.radius/1000>1)?(gMap.radiusPanel.radius/1000).toFixed(1)+"Km":gMap.radiusPanel.radius+"Métres"}}
+            <button class="btn btn-default" ng-click="gMap.settingsPanel.radiusTrigger()">Modifier</button>
+            <hr>
+            <ul class="list-group">
+                <li class="list-group-item">
+                    Afficher les stations fermé :
+                    <div class="btn-group">
+                        <button type="button" class="btn" ng-class="{'btn-success' : gMap.settingsPanel.showCloseStation==true}" ng-click="gMap.settingsPanel.setShowCloseStation(true)">Oui</button>
+                        <button type="button" class="btn" ng-class="{'btn-danger' : gMap.settingsPanel.showCloseStation==false}" ng-click="gMap.settingsPanel.setShowCloseStation(false)">Non</button>
+                    </div>
+                </li>
+                <li class="list-group-item">
+                    Afficher les stations a essence vide :
+                    <div class="btn-group">
+                        <button type="button" class="btn" ng-class="{'btn-success' : gMap.settingsPanel.showNoEssence==true}" ng-click="gMap.settingsPanel.setShowNoEssence(true)">Oui</button>
+                        <button type="button" class="btn" ng-class="{'btn-danger' : gMap.settingsPanel.showNoEssence==false}" ng-click="gMap.settingsPanel.setShowNoEssence(false)">Non</button>
+                    </div>
+                </li>
+                <li class="list-group-item">
+                    Afficher les stations a gasoil vide :
+                    <div class="btn-group">
+                        <button type="button" class="btn" ng-class="{'btn-success' : gMap.settingsPanel.showNoGasoil==true}" ng-click="gMap.settingsPanel.setShowNoGasoil(true)">Oui</button>
+                        <button type="button" class="btn" ng-class="{'btn-danger' : gMap.settingsPanel.showNoGasoil==false}" ng-click="gMap.settingsPanel.setShowNoGasoil(false)">Non</button>
+                    </div>
+                </li>
+            </ul>
+            <hr>
+        </div>
+    </div>
+</div>
+
+
+<!--
+    addStation : {
+        _show : boolean,
+        show : function,
+        hide : function,
+        mode : string,
+        
+        station : {
+            nom : String,
+            number : String,
+        }
+    }
+-->
+<div id="add-station" ng-if="gMap.addStation.show">
+
+    <div id="add-station-header" ng-if="gMap.addStation.mode == 'picker'">
+        <a href="#" class="btn btn-primary" ng-click="gMap.addStation.hide()">
+            <i class="fa fa-chevron-circle-left fa-lg" aria-hidden="true"></i>
+        </a>
+    </div>
+
+    <div id="add-station-panel" ng-if="gMap.addStation.mode == 'info'">
+        <div class="panel panel-default">
+            <div class="panel-heading">nouvelle station</div>
+            <div class="panel-body">
+                <ul class="list-group">
+                    <li class="list-group-item">
+                        <form name="addForm">
+                            <div class="form-group" ng-class="{ 'has-error': addForm.prix.$touched && addForm.prix.$invalid}">
+                                <label for="nom">Nom de la station : </label>
+                                <input name="nom" type="text" class="form-control" ng-model="gMap.addStation.station.nom" required>
+                                <div class="help-block" ng-messages="addForm.nom.$error" ng-if="addForm.nom.$touched">
+                                    <p ng-if="gasoilForm.prix.$error.required">nom obligatoire.</p>
+                                </div>
+                            </div>
+
+                            <div class="form-group" ng-class="{ 'has-error': addForm.tel.$touched && addForm.tel.$invalid}">
+                                <label for="nom">Téléphone : </label>
+                                <input name="tel" type="number" class="form-control" ng-model="gMap.addStation.station.number">
+                            </div>
+                        </form>
+                    </li>
+                    <hr>
+                    <li class="list-group-item">
+                        <h3>Gasoil</h3>
+                        <form name="gasoilForm" class="form-inline">
+                            <div class="form-group" ng-class="{ 'has-error': gasoilForm.prix.$touched && gasoilForm.prix.$invalid}">
+                                <label for="prixGasoil">Prix : </label>
+                                <input name="prix" type="text" class="form-control" id="prixGasoil" placeholder="0" ng-pattern="/^\d+((\.|\,)\d+)?$/" ng-model="gMap.addStation.station.gasoil.prix">
+                                <div class="help-block" ng-messages="gasoilForm.prix.$error" ng-if="gasoilForm.prix.$touched">
+                                    <p ng-if="gasoilForm.prix.$error.pattern">prix invalid</p>
+                                </div>
+                            </div>
+                            <hr> Disponible :
+                            <div class="btn-group">
+                                <button type="button" class="btn" ng-class="{'btn-success' : gMap.addStation.station.gasoil.dispo==true}" ng-click="gMap.addStation.station.gasoil.dispo=true">Oui</button>
+                                <button type="button" class="btn" ng-class="{'btn-danger' : gMap.addStation.station.gasoil.dispo==false}" ng-click="gMap.addStation.station.gasoil.dispo=false">Non</button>
+                            </div>
+                        </form>
+                    </li>
+                    <hr>
+                    <li class="list-group-item">
+                        <h3>Essence</h3>
+                        <form name="essenceForm" class="form-inline">
+                            <div class="form-group" ng-class="{ 'has-error': essenceForm.prix.$touched && essenceForm.prix.$invalid}">
+                                <label for="prixEssence">Prix : </label>
+                                <input name="prix" type="text" class="form-control" id="prixEssence" placeholder="0" ng-pattern="/^\d+((\.|\,)\d+)?$/" ng-model="gMap.addStation.station.essence.prix">
+                                <div class="help-block" ng-messages="essenceForm.prix.$error" ng-if="essenceForm.prix.$touched">
+                                    <p ng-if="essenceForm.prix.$error.pattern">prix invalid</p>
+                                </div>
+                            </div>
+                            <hr> Disponible :
+                            <div class="btn-group">
+                                <button type="button" class="btn" ng-class="{'btn-success' : gMap.addStation.station.essence.dispo==true}" ng-click="gMap.addStation.station.essence.dispo=true">Oui</button>
+                                <button type="button" class="btn" ng-class="{'btn-danger' : gMap.addStation.station.essence.dispo==false}" ng-click="gMap.addStation.station.essence.dispo=false">Non</button>
+                            </div>
+                        </form>
+                    </li>
+                    <hr>
+                    <li class="list-group-item">
+                        En service :
+                        <div class="btn-group">
+                            <button type="button" class="btn" ng-class="{'btn-success' : gMap.addStation.station.open==true}" ng-click="gMap.addStation.station.open=true">Ouverte</button>
+                            <button type="button" class="btn" ng-class="{'btn-danger' : gMap.addStation.station.open==false}" ng-click="gMap.addStation.station.open=false">Fermer</button>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <div class="panel-footer">
+                <div class="btn-group">
+                    <button type="submit" class="btn" ng-click="gMap.addStation.submit()" ng-class="{disabled : addForm.$invalid,'btn-success' : addForm.$valid,'btn-danger' : addForm.$invalid}">Submit</button>
+                    <button class="btn btn-default" ng-click="gMap.addStation.hide()">Annuler</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button id="hiddenButton" style="visibility : hidden" ng-click="gMap.addStation.hiddenButtonClick()"></button>
+
+</div>
+
+
+
+
+
+<!--
+    currentPositionTrigger = {
+        _show : boolean,
+        show : function,
+        hide : function,
+        click : function
+    }
+-->
+<div id="current-position-trigger" ng-if="gMap.currentPositionTrigger._show">
+    <button type="button" class="btn btn-circle-small btn-primary" ng-click="gMap.currentPositionTrigger.click()">
+        <i class="fa fa-dot-circle-o" aria-hidden="true"></i>
+    </button>
+</div>
+
+
+
+
+
+
+
+
+<!-- 
+    stationListTrigger = {
+        _show : boolean,
+        loading : boolean
+        click : function, 
+        show : function,
+        hide : function,
+    }
+-->
+<div id="station-list-trigger" ng-if="gMap.stationListTrigger._show">
+    <button type="button" class="btn btn-circle btn-primary" ng-click="gMap.stationListTrigger.click()">
+        <i class="fa" ng-class="{'fa-spinner fa-pulse':gMap.stationListTrigger.loading, 'fa-list-alt':!gMap.stationListTrigger.loading}"
+        aria-hidden="true"></i>
+    </button>
+</div>
+<!--
+    stationList : {
+        _show : boolean,
+        search : Object
+        globaleLikes : number,
+        setLike : function,
+        hide : function,
+        show ; function,
+        toggle : function,
+        toggleSearchInput:function,
+        showSearchInput : function,
+        hideSearchInput: function,
+        edit : function
+        go:function,
+        reclamer:function,
+        showReclamations:function
+    }
+-->
+<div id="stations-list-panel" ng-if='gMap.stationList._show'>
+    <div class="panel panel-default">
+
+        <div class="panel-heading clearfix">
+            <button type="button" ng-click="gMap.stationList.hide()" class="btn  btn-default pull-left">
+                <i class="fa fa-chevron-circle-left fa-lg" aria-hidden="true"></i>
+            </button>
+
+            <div class="input-group col-xs-8 pull-right">
+                <div class="input-group-btn">
+                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                        <span class="fa fa-sort"></span>
+                    </button>
+                    <ul class="dropdown-menu" role="menu">
+                        <li>
+                            <a href="#" ng-click="gMap.settingsPanel.setOrderBy({text : 'distance',value : 'distance.value'})"><i class="fa fa-clock-o" aria-hidden="true"></i> distance</a>
+                        </li>
+                        <li>
+                            <a href="#" ng-click="gMap.settingsPanel.setOrderBy({text : 'essence',value : 'essence.prix'})"><i class="fa fa-money" aria-hidden="true"></i> prix essence</a>
+                        </li>
+                        <li>
+                            <a href="#" ng-click="gMap.settingsPanel.setOrderBy({text : 'gasoil',value : 'gasoil.prix'})"><i class="fa fa-money" aria-hidden="true"></i> prix gasoil</a>
+                        </li>
+
+                    </ul>
+                </div>
+                <input type="text" class="form-control" placeholder="Recherche..." ng-model="gMap.stationList.search.nom">
+            </div>
+
+        </div>
+
+        <div class="panel-body">
+            <ul class="list-group">
+                <li class="list-group-item" ng-repeat="station in gMap.sortedStations |  filter : gMap.stationList.search">
+
+                    <div class="panel panel-default">
+                        <div class="panel-heading clearfix">
+                            <div class="pull-left">
+                                {{station.nom}} <span ng-show="!station.open" class="label label-danger">fermée</span>
+                            </div>
+                            <div class="pull-right">
+                                <h6>({{station.likes}})</h6>
+                            </div>
+                            <div class="stars pull-right">
+                                <form>
+                                    <input class="star star-5" id="_star-5{{$index}}" type="radio" name="star" ng-disabled="true" ng-checked="(station.likes/gMap.stationList.globaleLikes)>=0.8&&(station.likes/gMap.stationList.globaleLikes)<=1"
+                                    />
+                                    <label class="star star-5" for="_star-5{{$index}}"></label>
+                                    <input class="star star-4" id="_star-4{{$index}}" type="radio" name="star" ng-disabled="true" ng-checked="(station.likes/gMap.stationList.globaleLikes)>=0.6&&(station.likes/gMap.stationList.globaleLikes)<0.8"
+                                    />
+                                    <label class="star star-4" for="_star-4{{$index}}"></label>
+                                    <input class="star star-3" id="_star-3{{$index}}" type="radio" name="star" ng-disabled="true" ng-checked="(station.likes/gMap.stationList.globaleLikes)>=0.4&&(station.likes/gMap.stationList.globaleLikes)<0.6"
+                                    />
+                                    <label class="star star-3" for="_star-3{{$index}}"></label>
+                                    <input class="star star-2" id="_star-2{{$index}}" type="radio" name="star" ng-disabled="true" ng-checked="(station.likes/gMap.stationList.globaleLikes)>=0.2&&(station.likes/gMap.stationList.globaleLikes)<0.4"
+                                    />
+                                    <label class="star star-2" for="_star-2{{$index}}"></label>
+                                    <input class="star star-1" id="_star-1{{$index}}" type="radio" name="star" ng-disabled="true" ng-checked="(station.likes/gMap.stationList.globaleLikes)>=0.05&&(station.likes/gMap.stationList.globaleLikes)<0.2"
+                                    />
+                                    <label class="star star-1" for="_star-1{{$index}}"></label>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="panel-body">
+                            {{station.address}}
+                            </br>
+                            {{station.distance.text}} | {{station.duration.text}}
+                            <div ng-if="station.number">
+                                <i class="fa fa-phone" aria-hidden="true"></i>&nbsp0{{station.number}}
+                            </div>
+                            <hr>
+                            <h4>Gasoil: <span class="label label-primary">{{station.gasoil.prix}} DH </span> <span ng-if="!station.gasoil.dispo" class="label label-danger">a vide</span></h6>
+                            <h4>Essence: <span class="label label-primary">{{station.essence.prix}} DH </span> <span ng-if="!station.essence.dispo" class="label label-danger">a vide</span></h6>
+                            <hr>
+                            <button type="button" class="btn btn-default" ng-click="gMap.stationList.go(station)">Go</button>
+                            <button ng-show="gMap.user._id == station.owner" type="button" class="btn btn-default" ng-click="gMap.stationList.edit(station)">Modifier</button>
+                        </div>
+                        
+                        <div class="panel-footer clearfix">
+                            <button ng-if="gMap.user._id != station.owner" id="report-button" class="btn btn-default pull-right" ng-click="gMap.stationList.reclamer(station)">Réclamer</button>
+                            <button ng-if="gMap.user._id == station.owner&&station.reclamation.length>0" id="reclamation-button" class="btn btn-danger pull-left" ng-click="gMap.stationList.showReclamations(station)">{{station.reclamation.length}} Réclamation{{station.reclamation.length>1?'s':''}}</button>
+                            <div ng-if="gMap.user._id != station.owner"" class="stars pull-left">
+                                <form>
+                                    <input class="star star-5" id="star-5{{$index}}" type="radio" name="star" ng-checked="station.like == 5"  ng-click="gMap.stationList.setLike(station,5)"/>
+                                    <label class="star star-5" for="star-5{{$index}}"></label>
+                                    <input class="star star-4" id="star-4{{$index}}" type="radio" name="star" ng-checked="station.like == 4"  ng-click="gMap.stationList.setLike(station,4)"/>
+                                    <label class="star star-4" for="star-4{{$index}}"></label>
+                                    <input class="star star-3" id="star-3{{$index}}" type="radio" name="star" ng-checked="station.like == 3"  ng-click="gMap.stationList.setLike(station,3)"/>
+                                    <label class="star star-3" for="star-3{{$index}}"></label>
+                                    <input class="star star-2" id="star-2{{$index}}" type="radio" name="star" ng-checked="station.like == 2"  ng-click="gMap.stationList.setLike(station,2)"/>
+                                    <label class="star star-2" for="star-2{{$index}}"></label>
+                                    <input class="star star-1" id="star-1{{$index}}" type="radio" name="star" ng-checked="station.like == 1"  ng-click="gMap.stationList.setLike(station,1)"/>
+                                    <label class="star star-1" for="star-1{{$index}}"></label>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!--
+    reclamerPanel = {
+        _show: boolean,
+        station: Object,
+        message: String
+        show : function,
+        hide : function,
+        submit : function
+    }
+-->
+<div id="reclamation-panel" ng-show="gMap.reclamerPanel._show">
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            Reclamation a propos de : {{gMap.reclamerPanel.station.nom}}
+        </div>
+        <div class="panel-body">
+           <form name="reclamationForm">
+                        <div class="form-group" ng-class="{ 'has-error': reclamationForm.message.$touched && reclamationForm.message.$invalid}">
+                                <label for="message">Décriver brievement votre reclamation :  </label>
+                                <textarea name="message"  class="form-control" id="message" 
+                                ng-model="gMap.reclamerPanel.message" required></textarea>
+                                <div class="help-block" ng-messages="reclamationForm.message.$error" ng-if="reclamationForm.message.$touched">
+                                    <p ng-if="gasoilForm.message.$error.required">message obligatoire.</p>
+                                </div>
+                         </div>
+          </form>
+        </div>
+        <div class="panel-footer">
+            <div class="btn-group">
+                    <button type="submit" class="btn" ng-click="gMap.reclamerPanel.submit()" ng-class="{disabled : reclamationForm.$invalid,'btn-success' : reclamationForm.$valid,'btn-danger' : reclamationForm.$invalid}">Submit</button>
+                    <button class="btn btn-default" ng-click="gMap.reclamerPanel.hide()">Annuler</button>
+                </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<!--
+    reclamationsPanel = {
+        _show: boolean,
+        station: Object,
+        show : function,
+        hide : function,
+    }
+-->
+<div id="reclamations-panel" ng-show="gMap.reclamationsPanel._show">
+    <div class="panel panel-default">
+        <div class="panel-heading clearfix">
+           <button class="btn btn-btn-default pull-left" ng-click="gMap.reclamationsPanel.hide()"><i class="fa fa-times" aria-hidden="true"></i></button>
+        </div>
+        <div class="panel-body">
+            <ul class="list-group">
+                <li class="list-group-item" ng-repeat="reclamation in gMap.reclamationsPanel.station.reclamation">
+
+                    <div class="panel  panel-danger">
+                        <div class="panel-heading clearfix">
+                            {{reclamation.sender.nom}} {{reclamation.sender.prenom}} ({{reclamation.sender.email}})
+                            <span class="label label-success pull-right">{{reclamation.date | date}}</span>
+                        </div>
+
+                        <div class="panel-body">
+                            {{reclamation.message}}
+                        </div>
+                    </div>  
+                </li>
+            </ul>
+        </div>
+    </div>  
+</div>
+
+
+
+
+
+<!-- 
+    editStation = {
+        _show : boolean,
+        toggle : function, 
+        show : function,
+        hide : function,
+        submit : function()
+    }
+-->
+
+<div id="edit-station" ng-show="gMap.editStation._show">
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            {{gMap.editStation.station.nom}}
+        </div>
+        <div class="panel-body">
+            <ul class="list-group">
+                <li class="list-group-item">
+                    En service :
+                    <div class="btn-group">
+                        <button type="button" class="btn" ng-class="{'btn-success' : gMap.editStation.station.open==true}" ng-click="gMap.editStation.station.open=true">Ouverte</button>
+                        <button type="button" class="btn" ng-class="{'btn-danger' : gMap.editStation.station.open==false}" ng-click="gMap.editStation.station.open=false">Fermer</button>
+                    </div>
+                </li>
+                <hr>
+                <li class="list-group-item">
+                    <h3>Gasoil</h3>
+                     <form name="gasoilForm" class="form-inline">
+                            <div class="form-group" ng-class="{ 'has-error': gasoilForm.prix.$touched && gasoilForm.prix.$invalid}">
+                                <label for="prixGasoil">Prix : </label>
+                                <input name="prix" type="text" class="form-control" id="prixGasoil" placeholder="{{gMap.editStation.station.gasoil.prix}}" ng-pattern="/^\d+((\.|\,)\d+)?$/"
+                                ng-model="gMap.editStation.station.gasoil.prix" required>
+                                <div class="help-block" ng-messages="gasoilForm.prix.$error" ng-if="gasoilForm.prix.$touched">
+                                    <p ng-if="gasoilForm.prix.$error.pattern">prix invalid</p>
+                                    <p ng-if="gasoilForm.prix.$error.required">prix obligatoire.</p>
+                                </div>
+                            </div>
+                            <hr>
+                            Disponible : 
+                            <div class="btn-group">
+                                <button type="button" class="btn" ng-class="{'btn-success' : gMap.editStation.station.gasoil.dispo==true}" ng-click="gMap.editStation.station.gasoil.dispo=true">Oui</button>
+                                <button type="button" class="btn" ng-class="{'btn-danger' : gMap.editStation.station.gasoil.dispo==false}" ng-click="gMap.editStation.station.gasoil.dispo=false">Non</button>
+                            </div>
+                     </form>
+                </li>
+                <hr>
+                <li class="list-group-item">
+                    <h3>Essence</h3>
+                    <form name="essenceForm" class="form-inline">
+                            <div class="form-group" ng-class="{ 'has-error': essenceForm.prix.$touched && essenceForm.prix.$invalid}">
+                                <label for="prixEssence">Prix : </label>
+                                <input name="prix" type="text" class="form-control" id="prixEssence" placeholder="{{gMap.editStation.station.essence.prix}}" ng-pattern="/^\d+((\.|\,)\d+)?$/"
+                                ng-model="gMap.editStation.station.essence.prix" required>
+                                <div class="help-block" ng-messages="essenceForm.prix.$error" ng-if="essenceForm.prix.$touched">
+                                    <p ng-if="essenceForm.prix.$error.pattern">prix invalid</p>
+                                    <p ng-if="essenceForm.prix.$error.required">prix obligatoire.</p>
+                                </div>
+                            </div>
+                            <hr>
+                            Disponible : 
+                            <div class="btn-group">
+                                <button type="button" class="btn" ng-class="{'btn-success' : gMap.editStation.station.essence.dispo==true}" ng-click="gMap.editStation.station.essence.dispo=true">Oui</button>
+                                <button type="button" class="btn" ng-class="{'btn-danger' : gMap.editStation.station.essence.dispo==false}" ng-click="gMap.editStation.station.essence.dispo=false">Non</button>
+                            </div>
+                        </form>
+                </li>
+           </ul>
+        </div>
+        
+        <div class="panel-footer">
+                <div class="btn-group">
+                    <button type="submit" class="btn" ng-click="gMap.editStation.submit()"  ng-class="{disabled : essenceForm.$invalid||gasoilForm.$invalid,'btn-success' : essenceForm.$valid&&gasoilForm.$valid,'btn-danger' : essenceForm.$invalid||gasoilForm.$invalid}">Submit</button>
+                    <button class="btn btn-default" ng-click="gMap.editStation.hide()">Annuler</button>
+                </div>
+        </div>
+        
+    </div>
+</div>
+
+
+<!--
+    radiusPanel = {
+        deb : object
+        _show : boolean,
+        radius : number,
+        getRadius : function,
+        setRadius : function,
+        submitRadius : function,
+        show : function,
+        hide :function,
+    }
+-->
+
+<div id="radius-panel" ng-if="gMap.radiusPanel._show">
+    <div id="radius-header" >
+            <a href="#" class="btn btn-primary" ng-click="gMap.radiusPanel.submitRadius()">
+                Ok
+            </a>
+            <a href="#" class="btn btn-primary">{{(gMap.radiusPanel.radius/1000>1)?(gMap.radiusPanel.radius/1000).toFixed(1)+"Km":gMap.radiusPanel.radius+"Métres"}}</a>
+    </div>
+    <div id="radius-slider">
+            <rzslider rz-slider-model="gMap.radiusPanel.radius" rz-slider-options="gMap.radiusPanel.options"></rzslider>
+    </div>
+</div>
+
+<!--
+    connectionToast = {
+        _show : boolean,
+        setShow : function,
+    }
+-->
+
+<div id="connection-toast" ng-if="gMap.connectionToast._show">
+    <h5>verifier votre connexion</h5>
+</div>

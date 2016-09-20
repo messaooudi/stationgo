@@ -1,0 +1,10 @@
+#spinner {
+    font-size:44px
+}
+
+#spinnerDiv{
+    z-index: 50;
+    position: absolute;
+    top: 45%;
+    left: 45%;
+}
