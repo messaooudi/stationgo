@@ -1,6 +1,7 @@
 import angular from 'angular';
 import { Meteor } from 'meteor/meteor';
 
+import './font-awesome/css/font-awesome.min.css'
  
 import { name as MainApp } from '../imports/ui/components/mainApp/mainApp';
 
