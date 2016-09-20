@@ -506,6 +506,7 @@ class GMap {
             angular.forEach(destinations.dest, function (destination, j) {
                 if (destination && destination.trim().length > 1 && Meteor.status().connected) {
                     Meteor.call('getDistance', [origin.latitude, origin.longitude], destination, function (error, response) {
+                        var data = JSON.parse(response.content);
                         if (error || response.statusCode !== 200 || data.status !== "OK") {
                             alert('verifier votre reseaux !: ');
                             
@@ -529,7 +530,6 @@ class GMap {
                             
                         }
                         else{
-                            var data = JSON.parse(response.content);
                             angular.forEach(data.rows[0].elements, function (element, index) {
                                 if (element && element.status === "OK") {
                                     if (element.distance) {
