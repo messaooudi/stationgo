@@ -12,17 +12,70 @@ export default angular.module(name, [])
                 filtered.push(item);
             });
             filtered.sort(function (a, b) {
-                if (a[fields[0]][fields[1]] > b[fields[0]][fields[1]])
-                    return 1;
-                else if (a[fields[0]][fields[1]] < b[fields[0]][fields[1]])
-                    return -1;
-                else {
-                    if (a['distance']['value'] > b['distance']['value'])
-                        return 1;
-                    else if (a['distance']['value'] < b['distance']['value'])
+                if(fields[0]=="essence"){
+                    if(a.essence.dispo&&a.open&&(!b.essence.dispo||!b.open))
                         return -1;
-                    else
+                    else if((!a.essence.dispo||!a.open)&&b.essence.dispo&&b.open)
                         return 1;
+                    else{
+                        if(a.essence.prix > b.essence.prix)
+                            return 1;
+                        else if(a.essence.prix < b.essence.prix)
+                            return -1
+                        else{
+                            if(a.distance.value > b.distance.value)
+                                return 1;
+                            else if(a.distance.value < b.distance.value)  
+                                return -1;
+                            else {
+                                if(a.likes > b.likes)
+                                    return -1
+                                 else
+                                    return 1
+                            }
+                        }
+                    }
+                }
+                else if(fields[0]=="gasoil"){
+                    if(a.gasoil.dispo&&a.open&&(!b.gasoil.dispo||!b.open))
+                        return -1;
+                    else if((!a.gasoil.dispo||!a.open)&&b.gasoil.dispo&&b.open)
+                        return 1;
+                    else{
+                        if(a.gasoil.prix > b.gasoil.prix)
+                            return 1;
+                        else if(a.gasoil.prix < b.gasoil.prix)
+                            return -1
+                        else{
+                            if(a.distance.value > b.distance.value)
+                                return 1;
+                            else if(a.distance.value < b.distance.value)  
+                                return -1;
+                            else {
+                                if(a.likes > b.likes)
+                                    return -1
+                                 else
+                                    return 1
+                            }
+                        }
+                    }
+                }else{
+                    if(a.open&&!b.open)
+                        return -1;
+                    else if(!a.open&&b.open)
+                        return 1;
+                    else{
+                         if(a.distance.value > b.distance.value)
+                                return 1;
+                            else if(a.distance.value < b.distance.value)  
+                                return -1;
+                            else {
+                                if(a.likes > b.likes)
+                                    return -1
+                                 else
+                                    return 1
+                            }
+                    }
                 }
             });
             if (reverse) filtered.reverse();

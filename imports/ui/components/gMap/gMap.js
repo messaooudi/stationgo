@@ -42,7 +42,8 @@ class GMap {
         vm.currentMarker = L.marker([],{icon : homeIcon,zIndexOffset : 100});
        
         vm.markers = [];
-        vm.bounds = L.latLngBounds([]);
+        vm.markers['null'] =  L.marker();
+        vm.boundsLayer = L.featureGroup([]) ;//L.latLngBounds([]);
         function hideMarkers(opacity){
             for(let i = 0 ; i < vm.markers.length ; i++){
                  vm.markers[i].setOpacity(opacity)
@@ -149,72 +150,18 @@ class GMap {
         L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v9/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWVzc2FvdWRpb3Vzc2FtYSIsImEiOiJjaXQ2MjBqdHQwMDFsMnhxYW9hOW9tcHZoIn0.uX-ZR_To6tzxUpXmaVKOnQ', {
         }).addTo(map);
 
-        vm.connectionToast = {
-            _show: false,
-            setShow: function (val) {
-                this._show = val;
-            },
-        }
-
-
-        Tracker.autorun(() => {
-            vm.connectionToast.setShow(!Meteor.status().connected)
-        })
-
+    
         vm.helpers({
             user() {
                 return Meteor.user()
             }
         })
-
-        vm.stationHandler;
-        vm.firstStation;
+        
         
         vm._stations = {};
         vm._sortedStations = [];
-        vm.helpers({
-            stations() {
-                let query = Stations.find({});
-                vm.stationHandler = query.observeChanges({
-                        added: function (id, station) {
-                            station._id = id;
-                            
-                            vm.markers[id] =  L.marker([station.cord.lat,station.cord.lng],{zIndexOffset : 90});
-                            vm.markers[id].addTo(map);
-                            vm.markers[id].station = station;
-                            vm.markers[id].on('click',markerClickHandler)
-                            
-                            vm.bounds.extend(L.latLng(station.cord.lat,station.cord.lng))
-                            
-                            vm._stations[id] = station;
-                            vm._stations[id].like = Meteor.user().profile.likes[id]?Meteor.user().profile.likes[id]:0;
-                            vm._sortedStations = orderStationsFilter(vm._stations,vm.settingsPanel.getOrderBy().value)
-                            vm.stationList.globaleLikes+= station.likes;
-                
-                        },
-                        changed(id,station){                            
-                            for (var property in station) {
-                                 if(property == 'likes')
-                                    vm.stationList.globaleLikes+= station.likes - vm._stations[id]['likes'];
-      
-                                vm._stations[id][property] = station[property]
-                            }
-                                vm._sortedStations = orderStationsFilter(vm._stations,vm.settingsPanel.getOrderBy().value);                                                          
-                        },
-                        removed: function (id) {
-                            map.removeLayer(vm.markers[id]);
-                            vm.markers[id] = {};
-                            vm.stationList.globaleLikes-= vm._stations[id]["likes"];
-                            vm._stations[id] = undefined;
-                            vm._sortedStations = orderStationsFilter(vm._stations,vm.settingsPanel.getOrderBy().value);
-                        }
-                    })
-                return query;
-            }
-        });
        
        
-
         //partie radius Panel,
         vm.radiusPanel = {
             dep: new Tracker.Dependency,
@@ -279,7 +226,7 @@ class GMap {
             submitRadius: function () {
                 this.dep.changed();
                 this.hide();
-                map.fitBounds(vm.bounds)
+                //map.fitBounds(vm.boundsLayer.getBounds())
                 Meteor.users.update({ _id: Meteor.user()._id }, { $set: { 'profile.radius': this.radius } });
             }
         }
@@ -313,16 +260,12 @@ class GMap {
                 this._showOwnerStations = true;
                 this.dep.changed();
                 this.hide();
-                setTimeout(()=>{
-                     map.fitBounds(vm.bounds)
-                },300)
+                //map.fitBounds(vm.boundsLayer.getBounds())
             },
             hideOwnerStations: function () {
                 this._showOwnerStations = false;
                 this.dep.changed();
-                setTimeout(()=>{
-                     map.fitBounds(vm.bounds)
-                },300)
+                //map.fitBounds(vm.boundsLayer.getBounds())
             },
             toggle: function () {
                 this._show = !this._show;
@@ -374,7 +317,10 @@ class GMap {
                     this.orderBy = orderBy;
                     this.dep.changed();
                     Meteor.users.update({ _id: Meteor.user()._id }, { $set: { 'profile.orderBy': orderBy } });
-                    vm._sortedStations = orderStationsFilter(vm._stations,orderBy.value)                    
+
+                    vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(new L.Icon.Default());   
+                    vm._sortedStations = orderStationsFilter(vm._stations,orderBy.value)
+                    vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(vm.firstStationIcon);                    
                 }
             },
             getOrderBy: function () {
@@ -714,7 +660,7 @@ class GMap {
             submit: function () {
                 Stations.insert(this.station);
                 this.hide();
-                map.fitBounds(vm.bounds)
+                //map.fitBounds(vm.boundsLayer.getBounds())
                 
             },
 
@@ -908,7 +854,7 @@ class GMap {
                 this.summary = {totalDistance : "0 Métre",totalTime : "0 s"};
                 this.hidePanel();
                 showMarkers();
-                map.fitBounds(vm.bounds);
+                //map.fitBounds(vm.boundsLayer.getBounds());
                 routing.setWaypoints([]);
             },
             showPanle: function () {
@@ -955,6 +901,76 @@ class GMap {
             }
         }
 
+
+
+        vm.stationHandler;        
+        vm.helpers({
+            stations() {
+                let query = Stations.find({});
+                vm.stationHandler = query.observeChanges({
+                        added: function (id, station) {
+                            station._id = id;
+                            
+                            vm.markers[id] =  L.marker([station.cord.lat,station.cord.lng],{zIndexOffset : 90});
+                            vm.markers[id].addTo(map);
+                            vm.markers[id].station = station;
+                            vm.markers[id].on('click',markerClickHandler)
+                            
+                            //vm.boundsLayer.addLayer(vm.markers[id]);
+                            
+                            vm._stations[id] = station;
+                            vm._stations[id].like = Meteor.user().profile.likes[id]?Meteor.user().profile.likes[id]:0;
+                            
+                            vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(new L.Icon.Default());   
+                            vm._sortedStations = orderStationsFilter(vm._stations,vm.settingsPanel.getOrderBy().value)
+                            vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(vm.firstStationIcon);
+                           
+                            vm.stationList.globaleLikes+= station.likes;
+                            
+                            
+                        },
+                        changed(id,station){                            
+                            for (var property in station) {
+                                 if(property == 'likes')
+                                    vm.stationList.globaleLikes+= station.likes - vm._stations[id]['likes'];
+      
+                                vm._stations[id][property] = station[property]
+                            }
+                            
+                            vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(new L.Icon.Default());   
+                            vm._sortedStations = orderStationsFilter(vm._stations,vm.settingsPanel.getOrderBy().value)
+                            vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(vm.firstStationIcon);                                                          
+                        },
+                        removed: function (id) {
+                            map.removeLayer(vm.markers[id]);
+                            vm.stationList.globaleLikes-= vm._stations[id]["likes"];
+                            vm._stations[id] = undefined;
+                            
+                            vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(new L.Icon.Default());   
+                            vm._sortedStations = orderStationsFilter(vm._stations,vm.settingsPanel.getOrderBy().value)
+                            vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(vm.firstStationIcon);
+                            
+                            //vm.boundsLayer.removeLayer(vm.markers[id]);
+                            
+                            vm.markers[id] = undefined;
+                        }
+                    })
+                return query;
+            }
+        });
+
+
+        vm.connectionToast = {
+            _show: false,
+            setShow: function (val) {
+                this._show = val;
+            },
+        }
+
+
+        Tracker.autorun(() => {
+            vm.connectionToast.setShow(!Meteor.status().connected)
+        })
 
 /*
         vm.helpers({
