@@ -123,6 +123,6 @@ function config($stateProvider, $locationProvider, $urlRouterProvider) {
     $stateProvider
         .state('login', {
             url: '/login',
-            template: '<login></login>'
+            template: '<login></login>',
         })
 }

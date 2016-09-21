@@ -22,8 +22,11 @@ import webTemplate from './web.html';
 import './gMap.css';
 
 
+import { name as OrderStations } from '../../filters/orderStations';
+ 
+
 class GMap {
-    constructor($scope, $reactive, $state, orderByFilter,$timeout) {
+    constructor($scope, $reactive, $state, orderByFilter,orderStationsFilter,$timeout) {
         'ngInject';
 
         $reactive(this).attach($scope);
@@ -39,7 +42,7 @@ class GMap {
         vm.currentMarker = L.marker([],{icon : homeIcon,zIndexOffset : 100});
        
         vm.markers = [];
-        vm.bounds = L.latLngBounds();
+        vm.bounds = L.latLngBounds([]);
         function hideMarkers(opacity){
             for(let i = 0 ; i < vm.markers.length ; i++){
                  vm.markers[i].setOpacity(opacity)
@@ -166,22 +169,44 @@ class GMap {
 
         vm.stationHandler;
         vm.firstStation;
+        
+        vm._stations = {};
+        vm._sortedStations = [];
         vm.helpers({
             stations() {
                 let query = Stations.find({});
                 vm.stationHandler = query.observeChanges({
                         added: function (id, station) {
                             station._id = id;
+                            
                             vm.markers[id] =  L.marker([station.cord.lat,station.cord.lng],{zIndexOffset : 90});
                             vm.markers[id].addTo(map);
                             vm.markers[id].station = station;
                             vm.markers[id].on('click',markerClickHandler)
+                            
+                            vm.bounds.extend(L.latLng(station.cord.lat,station.cord.lng))
+                            
+                            vm._stations[id] = station;
+                            vm._stations[id].like = Meteor.user().profile.likes[id]?Meteor.user().profile.likes[id]:0;
+                            vm._sortedStations = orderStationsFilter(vm._stations,vm.settingsPanel.getOrderBy().value)
+                            vm.stationList.globaleLikes+= station.likes;
+                
                         },
-                        changed(id,station){
+                        changed(id,station){                            
+                            for (var property in station) {
+                                 if(property == 'likes')
+                                    vm.stationList.globaleLikes+= station.likes - vm._stations[id]['likes'];
+      
+                                vm._stations[id][property] = station[property]
+                            }
+                                vm._sortedStations = orderStationsFilter(vm._stations,vm.settingsPanel.getOrderBy().value);                                                          
                         },
                         removed: function (id) {
                             map.removeLayer(vm.markers[id]);
                             vm.markers[id] = {};
+                            vm.stationList.globaleLikes-= vm._stations[id]["likes"];
+                            vm._stations[id] = undefined;
+                            vm._sortedStations = orderStationsFilter(vm._stations,vm.settingsPanel.getOrderBy().value);
                         }
                     })
                 return query;
@@ -349,6 +374,7 @@ class GMap {
                     this.orderBy = orderBy;
                     this.dep.changed();
                     Meteor.users.update({ _id: Meteor.user()._id }, { $set: { 'profile.orderBy': orderBy } });
+                    vm._sortedStations = orderStationsFilter(vm._stations,orderBy.value)                    
                 }
             },
             getOrderBy: function () {
@@ -418,7 +444,7 @@ class GMap {
         
         
          vm.helpers({
-            fistStationIcon() {
+            firstStationIcon() {
                 return L.AwesomeMarkers.icon({
                         icon: vm.settingsPanel.getOrderBy().value=='distance.value'?'fa-clock-o':'fa-money',
                         markerColor: 'orange',
@@ -434,16 +460,10 @@ class GMap {
             if(origin&&vm.lastPosition){
                  distance = L.latLng(origin.latitude,origin.longitude).distanceTo(L.latLng(vm.lastPosition.latitude,vm.lastPosition.longitude));
             }
-            if(distance > 100){
+            if(false && distance > 100){
                 updateDistances(vm.stations, getOrigins(vm.stations, 20), origin, function () {
                         $scope.$apply(() => {
-                            vm.sortedStations = orderByFilter(vm.stations,[vm.settingsPanel.getOrderBy().value,'distance.value']);
-                            
-                            if(vm.firstStation&&vm.markers[vm.firstStation._id]&&vm.firstStation!=vm.firstStation._id){
-                              vm.markers[vm.firstStation._id].setIcon(new L.Icon.Default());
-                              vm.markers[vm.sortedStations[0]._id].setIcon(vm.fistStationIcon);
-                              vm.firstStation = vm.sortedStations[0];
-                            }
+                           
                         })
                      });
             }
@@ -451,10 +471,7 @@ class GMap {
         })       
 
         Tracker.autorun(() => {
-            //let pos = Location.getReactivePosition();
-            //if (!pos)
-
-            let pos = vm.current;//Location.getLastPosition()
+            let pos = vm.current;
             let bounds = { center: [pos.longitude, pos.latitude], radius: 0.000621371 * vm.radiusPanel.getRadius() };
 
             if(vm.sideBarPanel.getShowOwnerStations()){
@@ -480,13 +497,13 @@ class GMap {
         //utile functions
         
         function getOrigins(stations, max) {
-            vm.bounds = L.latLngBounds([]);
-            vm.bounds.extend(L.latLng(vm.current.latitude,vm.current.longitude))
-            vm.stationList.globaleLikes = 1;
+            //vm.bounds = L.latLngBounds([]);
+            //vm.bounds.extend(L.latLng(vm.current.latitude,vm.current.longitude))
+            //vm.stationList.globaleLikes = 1;
+            /*
             let tmp = [];
             var q = Math.floor(stations.length / max);
             var r = stations.length % max
-
             for (let j = 0; j <= (r == 0 ? q - 1 : q); j++) {
                 tmp[j] = '';
                 for (let i = j * max; i < (j == q ? r + j * max : (j + 1) * max); i++) {
@@ -499,6 +516,29 @@ class GMap {
                 tmp[j] = tmp[j].slice(0, -1)
             }
             return { dest: tmp, max: max };
+            */
+            
+            let i = 0;
+            let j = 0;
+            let _tmp = [];
+            angular.forEach(stations,function(station , index){                
+                if(j == 0)
+                    _tmp[i] = '';
+                
+                 _tmp[i] += ((j == 0)?'':'|')+station.cord.lat+','+station.cord.lng;
+                 //vm.bounds.extend(L.latLng(station.cord.lat,station.cord.lng))
+                 //station.like = Meteor.user().profile.likes[station._id]?Meteor.user().profile.likes[station._id]:0;
+                 //vm.stationList.globaleLikes+= station.likes
+                
+                j++;
+                
+                if(j == max){
+                    j = 0;
+                    i++;
+                }
+            })
+                        
+            return { dest: _tmp, max: max };
         }
 
 
@@ -506,10 +546,9 @@ class GMap {
             angular.forEach(destinations.dest, function (destination, j) {
                 if (destination && destination.trim().length > 1 && Meteor.status().connected) {
                     Meteor.call('getDistance', [origin.latitude, origin.longitude], destination, function (error, response) {
-                        var data = JSON.parse(response.content);
+                        var data = JSON.parse(response.content || "'status':'off'");
                         if (error || response.statusCode !== 200 || data.status !== "OK") {
                             alert('verifier votre reseaux !: ');
-                            
                              angular.forEach(stations, function (station, index) {
                                 var estimated = L.latLng(origin.latitude,origin.longitude).distanceTo(L.latLng(station.cord.lat, station.cord.lng));
                                 station.distance.text = estimated > 1000 ? (estimated / 1000).toFixed(2) + " km" : Math.round(estimated) + " m";
@@ -526,8 +565,7 @@ class GMap {
                                 
                                  vm.markers[station._id].station = station;
                             });
-                            callback()
-                            
+                            callback()   
                         }
                         else{
                             angular.forEach(data.rows[0].elements, function (element, index) {
@@ -536,7 +574,7 @@ class GMap {
                                         stations[j * destinations.max + index].distance.text = element.distance.text;
                                         stations[j * destinations.max + index].distance.value = element.distance.value;
                                     }
-                                    if (element && element.duration) {
+                                    if (element.duration) {
                                         stations[j * destinations.max + index].duration.text = element.duration.text;
                                         stations[j * destinations.max + index].duration.value = element.duration.value;
                                     }
@@ -733,18 +771,21 @@ class GMap {
                     })
                     Stations.update(station._id,{$inc : {likes : tmp}},function(error,n){
                     })
+                    
+                    vm._stations[station._id].like = n;
+                    station.like = n;
                 }                
             },
             toggle: function () {
                 this._show = !this._show;
 
                 if (this._show) {
-                    updateDistances(vm.stations, getOrigins(vm.stations, 20), vm.lastPosition, function () {
+                   /* updateDistances(vm.stations, getOrigins(vm.stations, 20), vm.lastPosition, function () {
                         $scope.$apply(() => {
                             vm.sortedStations = orderByFilter(vm.stations,[vm.settingsPanel.getOrderBy().value,'distance.value']);
                             vm.stationListTrigger.loading = false;
                         })
-                     });
+                     });*/
                     vm.mapShadow.show();
                 } else {
                     vm.mapShadow.hide();
@@ -915,12 +956,11 @@ class GMap {
         }
 
 
-
+/*
         vm.helpers({
             sortedStations() {
                 let stations = vm.getReactively('stations');
                 let orderBy = vm.settingsPanel.getOrderBy().value;
-                
                 vm.stationListTrigger.loading = true;
                 vm.stationList.blockRating = true;
                 updateDistances(stations, getOrigins(stations, 20), vm.lastPosition, function () {
@@ -930,7 +970,7 @@ class GMap {
                         if(vm.firstStation&&vm.markers[vm.firstStation._id])
                              vm.markers[vm.firstStation._id].setIcon(new L.Icon.Default());
                              
-                             vm.markers[vm.sortedStations[0]._id].setIcon(vm.fistStationIcon);
+                             vm.markers[vm.sortedStations[0]._id].setIcon(vm.firstStationIcon);
                              vm.firstStation = vm.sortedStations[0];
                         
                         vm.stationListTrigger.loading = false;
@@ -940,7 +980,7 @@ class GMap {
                 });
                 return vm.sortedStations;//orderByFilter(stations, [vm.settingsPanel.getOrderBy().value,'distance.value']);
             }
-        });
+        });*/
 
 
     }
@@ -953,6 +993,7 @@ const template = Meteor.isCordova ? mobileTemplate : webTemplate;
 export default angular.module(name, [
     angularMeteor,
     uiRouter,
+    OrderStations,
     'rzModule'//Slider Module
 ]).component(name, {
     template,
