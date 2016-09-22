@@ -854,7 +854,6 @@ class GMap {
                             vm._stations[id].updateDistance(()=>{
                                 count++;
                                 if(query.count() == count){
-                                       console.log(query.count() + " "+count)
                                        $scope.$apply(()=>{
                                         vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setZIndexOffset(90);
                                         vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(new L.Icon.Default());
