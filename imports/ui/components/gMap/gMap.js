@@ -426,17 +426,22 @@ class GMap {
             if(origin&&vm.lastPosition){
                  distance = L.latLng(origin.latitude,origin.longitude).distanceTo(L.latLng(vm.lastPosition.latitude,vm.lastPosition.longitude));
             }
-            if(false && distance > 100){
-                for(let i = 0 ;i < vm._stations.length ; i++){
-                    vm._stations[i].updateDistance()
-                }
-                $scope.$apply(()=>{
-                   vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setZIndexOffset(90);
-                   vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(new L.Icon.Default());
-                   vm._sortedStations = orderStationsFilter(vm._stations,vm.settingsPanel.getOrderBy().value)
-                   vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(vm.firstStationIcon);
-                   vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setZIndexOffset(100);
-                })                         
+            if(distance > 100){
+                let count = 0;
+                for(let id in vm._stations){
+                    vm._stations[id].updateDistance(()=>{
+                         count++;
+                         if(vm.stations.length == count){
+                            $scope.$apply(()=>{
+                                vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setZIndexOffset(90);
+                                vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(new L.Icon.Default());
+                                vm._sortedStations = orderStationsFilter(vm._stations,vm.settingsPanel.getOrderBy().value)
+                                vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(vm.firstStationIcon);
+                                vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setZIndexOffset(100);
+                            })  
+                        } 
+                    })
+                }                    
             }
             vm.lastPosition = origin;
         })       
@@ -482,28 +487,7 @@ class GMap {
          }); 
 
         }
-        function getOrigins(stations, max) {
-            //vm.bounds = L.latLngBounds([]);
-            //vm.bounds.extend(L.latLng(vm.current.latitude,vm.current.longitude))
-            //vm.stationList.globaleLikes = 1;
-            /*
-            let tmp = [];
-            var q = Math.floor(stations.length / max);
-            var r = stations.length % max
-            for (let j = 0; j <= (r == 0 ? q - 1 : q); j++) {
-                tmp[j] = '';
-                for (let i = j * max; i < (j == q ? r + j * max : (j + 1) * max); i++) {
-                    tmp[j] += stations[i].cord.lat + ',' + stations[i].cord.lng + "|";
-                    vm.bounds.extend(L.latLng(stations[i].cord.lat,stations[i].cord.lng))
-                    stations[i].like = Meteor.user().profile.likes[stations[i]._id]?Meteor.user().profile.likes[stations[i]._id]:0;
-                    vm.stationList.globaleLikes+= stations[i].likes
-                }
-
-                tmp[j] = tmp[j].slice(0, -1)
-            }
-            return { dest: tmp, max: max };
-            */
-            
+        function getOrigins(stations, max) {            
             let i = 0;
             let j = 0;
             let _tmp = [];
@@ -511,11 +495,7 @@ class GMap {
                 if(j == 0)
                     _tmp[i] = '';
                 
-                 _tmp[i] += ((j == 0)?'':'|')+station.cord.lat+','+station.cord.lng;
-                 //vm.bounds.extend(L.latLng(station.cord.lat,station.cord.lng))
-                 //station.like = Meteor.user().profile.likes[station._id]?Meteor.user().profile.likes[station._id]:0;
-                 //vm.stationList.globaleLikes+= station.likes
-                
+                 _tmp[i] += ((j == 0)?'':'|')+station.cord.lat+','+station.cord.lng;                
                 j++;
                 
                 if(j == max){
@@ -527,92 +507,6 @@ class GMap {
             return { dest: _tmp, max: max };
         }
 
-
-        function updateDistances(stations, destinations, origin, callback) {
-            angular.forEach(destinations.dest, function (destination, j) {
-                if (destination && destination.trim().length > 1 && Meteor.status().connected) {
-                    Meteor.call('getDistance', [origin.latitude, origin.longitude], destination, function (error, response) {
-                        var data = JSON.parse(response.content || "'status':'off'");
-                        if (error || response.statusCode !== 200 || data.status !== "OK") {
-                            alert('verifier votre reseaux !: ');
-                             angular.forEach(stations, function (station, index) {
-                                var estimated = L.latLng(origin.latitude,origin.longitude).distanceTo(L.latLng(station.cord.lat, station.cord.lng));
-                                station.distance.text = estimated > 1000 ? (estimated / 1000).toFixed(2) + " km" : Math.round(estimated) + " m";
-                                station.distance.value = estimated;
-
-                                var travelTime = estimated / 0.017;
-                                var duration = new Date(travelTime);
-                                var hh = duration.getUTCHours();
-                                var mm = duration.getUTCMinutes();
-                                var ss = duration.getSeconds();
-
-                                station.duration.text = (hh > 0 ? hh + " heurs et " : "") + (mm > 0 ? mm + " minutes" : "") + ((hh == 0 && mm == 0) ? ss + " secondes." : ".");
-                                station.duration.value = travelTime / 1000;
-                                
-                                 vm.markers[station._id].station = station;
-                            });
-                            callback()   
-                        }
-                        else{
-                            angular.forEach(data.rows[0].elements, function (element, index) {
-                                if (element && element.status === "OK") {
-                                    if (element.distance) {
-                                        stations[j * destinations.max + index].distance.text = element.distance.text;
-                                        stations[j * destinations.max + index].distance.value = element.distance.value;
-                                    }
-                                    if (element.duration) {
-                                        stations[j * destinations.max + index].duration.text = element.duration.text;
-                                        stations[j * destinations.max + index].duration.value = element.duration.value;
-                                    }
-                                } else {
-                                    var estimated = L.latLng(origin.latitude,origin.longitude).distanceTo(L.latLng(stations[j * destinations.max + index].cord.lat, stations[j * destinations.max + index].cord.lng));
-                                    stations[j * destinations.max + index].distance.text = estimated > 1000 ? (estimated / 1000).toFixed(2) + " km" : Math.round(estimated) + " m";
-                                    stations[j * destinations.max + index].distance.value = estimated;
-
-                                    
-                                    var travelTime = estimated / 0.017;
-                                    var duration = new Date(travelTime);
-                                    var hh = duration.getUTCHours();
-                                    var mm = duration.getUTCMinutes();
-                                    var ss = duration.getSeconds();
-
-                                    stations[j * destinations.max + index].duration.text = (hh > 0 ? hh + " heurs et " : "") + (mm > 0 ? mm + " minutes" : "") + ((hh == 0 && mm == 0) ? ss + " secondes." : ".");
-                                    stations[j * destinations.max + index].duration.value = travelTime / 1000;
-                                }
-                                vm.markers[stations[j * destinations.max + index]._id].station = stations[j * destinations.max + index];
-                            });
-
-                            if (j == destinations.dest.length - 1) {
-                                callback()
-                            }
-                        }
-                    });
-                }else{
-                    angular.forEach(stations, function (station, index) {
-                                var estimated = L.latLng(origin.latitude,origin.longitude).distanceTo(L.latLng(station.cord.lat, station.cord.lng));
-                                station.distance.text = estimated > 1000 ? (estimated / 1000).toFixed(2) + " km" : Math.round(estimated) + " m";
-                                station.distance.value = estimated;
-
-                                var travelTime = estimated / 0.017;
-                                var duration = new Date(travelTime);
-                                var hh = duration.getUTCHours();
-                                var mm = duration.getUTCMinutes();
-                                var ss = duration.getSeconds();
-
-                                station.duration.text = (hh > 0 ? hh + " heurs et " : "") + (mm > 0 ? mm + " minutes" : "") + ((hh == 0 && mm == 0) ? ss + " secondes." : ".");
-                                station.duration.value = travelTime / 1000;
-                                
-                                vm.markers[station._id].station = station;
-                            });
-                            callback()
-                  }
-            });
-        }
-
-        
-       
-          
-       
         //station object
         function Station() {
             this.nom = '',
@@ -766,12 +660,6 @@ class GMap {
                 this._show = !this._show;
 
                 if (this._show) {
-                   /* updateDistances(vm.stations, getOrigins(vm.stations, 20), vm.lastPosition, function () {
-                        $scope.$apply(() => {
-                            vm.sortedStations = orderByFilter(vm.stations,[vm.settingsPanel.getOrderBy().value,'distance.value']);
-                            vm.stationListTrigger.loading = false;
-                        })
-                     });*/
                     vm.mapShadow.show();
                 } else {
                     vm.mapShadow.hide();
@@ -944,19 +832,16 @@ class GMap {
                 let count = 0;
                 vm.stationHandler = query.observeChanges({
                         added: function (id, station) {
-                            //count ++ ;
                             station._id = id;
                             
                             vm.markers[id] =  L.marker([station.cord.lat,station.cord.lng],{zIndexOffset : 90});
                             vm.markers[id].addTo(map);
                             vm.markers[id].station = station;
                             vm.markers[id].on('click',markerClickHandler)
-                            
-                            //vm.boundsLayer.addLayer(vm.markers[id]);
+                            vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(new L.Icon.Default());                           
                             
                             vm._stations[id] = station;
                             vm._stations[id].like = Meteor.user().profile.likes[id]?Meteor.user().profile.likes[id]:0;
-                            
                             vm._stations[id].updateDistance = function(callback){
                                 getDistance(L.latLng(vm.current.latitude,vm.current.longitude),L.latLng(this.cord.lat,this.cord.lng),
                                 (err,distance,duration)=>{
@@ -965,10 +850,7 @@ class GMap {
                                     callback();
                                 });
                             }
-                                                        
-                            vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(new L.Icon.Default());   
-                           
-                            
+                 
                             vm._stations[id].updateDistance(()=>{
                                 count++;
                                 if(query.count() == count){
@@ -982,31 +864,10 @@ class GMap {
                                        }) 
                                  }
                             })
-                           /* getDistance(L.latLng(vm.current.latitude,vm.current.longitude),L.latLng(station.cord.lat,station.cord.lng),
-                                (err,distance,duration)=>{
-                                    count++;
-                                    vm._stations[id].distance = distance;
-                                    vm._stations[id].duration = duration;
-                                    if(query.count() == count){
-                                        console.log(query.count() + " "+count)
-                                       $scope.$apply(()=>{
-                                        vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setZIndexOffset(90);
-                                        vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(new L.Icon.Default());
-                                        vm._sortedStations = orderStationsFilter(vm._stations,vm.settingsPanel.getOrderBy().value)
-                                        vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(vm.firstStationIcon);
-                                        vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setZIndexOffset(100);
-                                       }) 
-                                    }
-                                }
-                            );*/
+
                            
                             vm.stationList.globaleLikes+= station.likes;
-                            /*
-                            if(query.count() == count){
-                                 vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(new L.Icon.Default());
-                                 vm._sortedStations = orderStationsFilter(vm._stations,vm.settingsPanel.getOrderBy().value)
-                                 vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(vm.firstStationIcon);
-                            }*/
+     
                         },
                         changed(id,station){                            
                             for (var property in station) {
@@ -1033,8 +894,6 @@ class GMap {
                             vm._sortedStations = orderStationsFilter(vm._stations,vm.settingsPanel.getOrderBy().value)
                             vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(vm.firstStationIcon);
                             vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setZIndexOffset(100);
-                            //vm.boundsLayer.removeLayer(vm.markers[id]);
-                            
                             vm.markers[id] = undefined;
                         }
                     })
@@ -1054,33 +913,6 @@ class GMap {
         Tracker.autorun(() => {
             vm.connectionToast.setShow(!Meteor.status().connected)
         })
-
-/*
-        vm.helpers({
-            sortedStations() {
-                let stations = vm.getReactively('stations');
-                let orderBy = vm.settingsPanel.getOrderBy().value;
-                vm.stationListTrigger.loading = true;
-                vm.stationList.blockRating = true;
-                updateDistances(stations, getOrigins(stations, 20), vm.lastPosition, function () {
-                    $scope.$apply(() => {
-                        vm.sortedStations = orderByFilter(stations, [orderBy,'distance.value']);
-                        
-                        if(vm.firstStation&&vm.markers[vm.firstStation._id])
-                             vm.markers[vm.firstStation._id].setIcon(new L.Icon.Default());
-                             
-                             vm.markers[vm.sortedStations[0]._id].setIcon(vm.firstStationIcon);
-                             vm.firstStation = vm.sortedStations[0];
-                        
-                        vm.stationListTrigger.loading = false;
-                        vm.stationList.blockRating = false;
-
-                    })
-                });
-                return vm.sortedStations;//orderByFilter(stations, [vm.settingsPanel.getOrderBy().value,'distance.value']);
-            }
-        });*/
-
 
     }
 }
