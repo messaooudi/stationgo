@@ -5,6 +5,7 @@ import uiRouter from 'angular-ui-router';
 
 import 'leaflet-routing-machine';
 
+
 import 'angularjs-slider/dist/rzslider.min.js';
 import 'angularjs-slider/dist/rzslider.min.css'
 
@@ -39,7 +40,7 @@ class GMap {
                         icon: 'fa-street-view',
                         markerColor: 'red',
                         });
-        vm.currentMarker = L.marker([],{icon : homeIcon,zIndexOffset : 100});
+        vm.currentMarker = L.marker([],{icon : homeIcon,zIndexOffset : 95});
        
         vm.markers = [];
         vm.markers['null'] =  L.marker();
@@ -116,6 +117,7 @@ class GMap {
         });
         
         vm.lastPosition = vm.current;
+       
         
         map.once('load', () => {
             L.control.zoom({
@@ -133,11 +135,23 @@ class GMap {
                 lineOptions : {styles : [{color: 'black', opacity: 0.15, weight: 9}, {color: 'white', opacity: 0.8, weight: 6}, {color: 'blue', opacity: 1, weight: 3}]},
                 altLineOptions :{styles : [{color: 'black', opacity: 0.15, weight: 9}, {color: 'white', opacity: 0.8, weight: 6}, {color: 'red', opacity: 0.9, weight: 2}]}
             });
+            
+            routing.on('routeselected', function(e) {
+                //var coord = e.route.coordinates;
+                var instr = e.route.instructions;
+                
+                var formatter = new L.Routing.Formatter({language : 'fr'});
+              
+                $scope.$apply(()=>{                     
+                     vm.direction.text = formatter.formatInstruction(instr[(instr.length <3)?1:0])+" ("+formatter.formatDistance(instr[0].distance)+")";
+                })
+
+            });
+            
             routing.addTo(map); 
             routing.hide();
             routing.on('routesfound',(e)=>{
                 $scope.$apply(()=>{
-
                     vm.direction.summary.totalDistance = e.routes[0].summary.totalDistance/1000 > 1?(e.routes[0].summary.totalDistance/1000).toFixed(2)+" Km":(e.routes[0].summary.totalDistance).toFixed(1)+" Métres";
                     let duration = new Date(e.routes[0].summary.totalTime*1000);
                     let hh = duration.getUTCHours();
@@ -320,7 +334,13 @@ class GMap {
 
                     vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(new L.Icon.Default());   
                     vm._sortedStations = orderStationsFilter(vm._stations,orderBy.value)
-                    vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(vm.firstStationIcon);                    
+                   
+                    let icon =  L.AwesomeMarkers.icon({
+                        icon: orderBy.value=='distance.value'?'fa-clock-o':'fa-money',
+                        markerColor: 'orange',
+                        spin : true
+                        });
+                    vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(icon);                    
                 }
             },
             getOrderBy: function () {
@@ -407,11 +427,16 @@ class GMap {
                  distance = L.latLng(origin.latitude,origin.longitude).distanceTo(L.latLng(vm.lastPosition.latitude,vm.lastPosition.longitude));
             }
             if(false && distance > 100){
-                updateDistances(vm.stations, getOrigins(vm.stations, 20), origin, function () {
-                        $scope.$apply(() => {
-                           
-                        })
-                     });
+                for(let i = 0 ;i < vm._stations.length ; i++){
+                    vm._stations[i].updateDistance()
+                }
+                $scope.$apply(()=>{
+                   vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setZIndexOffset(90);
+                   vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(new L.Icon.Default());
+                   vm._sortedStations = orderStationsFilter(vm._stations,vm.settingsPanel.getOrderBy().value)
+                   vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(vm.firstStationIcon);
+                   vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setZIndexOffset(100);
+                })                         
             }
             vm.lastPosition = origin;
         })       
@@ -440,8 +465,23 @@ class GMap {
        
  
       
-        //utile functions
+        //utile 
         
+        function getDistance(origin , dest,callback){
+            let router = L.Routing.osrmv1();
+            let waypoints = [{latLng : origin},{latLng:dest}];
+            router.route (waypoints, function (err, routes) {
+                let formatter = new L.Routing.Formatter({language : 'fr'});
+                if(err)
+                    callback(err , {text : "",value : ""},{text : "",value : ""})
+                else{
+                    callback(err,
+                            {text : formatter.formatDistance(routes[0].summary.totalDistance),value : routes[0].summary.totalDistance},
+                            {text : formatter.formatTime(routes[0].summary.totalTime) , value :routes[0].summary.totalTime })
+                }
+         }); 
+
+        }
         function getOrigins(stations, max) {
             //vm.bounds = L.latLngBounds([]);
             //vm.bounds.extend(L.latLng(vm.current.latitude,vm.current.longitude))
@@ -834,12 +874,9 @@ class GMap {
         
         vm.direction = {
             _show: false,
-            _showPanle: false,
+            text : '',
             station : {},
             summary : {totalDistance : "0 Métre",totalTime : "0 s"},
-            togglePanel: function () {
-                this._showPanel = !this._showPanel;
-            },
             show: function () {
                 routing.setWaypoints([
                     L.latLng(vm.current.latitude,vm.current.longitude),
@@ -847,22 +884,19 @@ class GMap {
                 ])
                 hideMarkers(0.3);
                 map.setView(L.latLng(vm.current.latitude,vm.current.longitude),16)
+                vm.stationListTrigger.hide();
+                vm.currentPositionTrigger.hide();
                 this._show = true;
             },
             hide: function () {
                 this._show = false;
+                vm.stationListTrigger.show();
+                vm.currentPositionTrigger.show();
                 this.summary = {totalDistance : "0 Métre",totalTime : "0 s"};
-                this.hidePanel();
                 showMarkers();
                 //map.fitBounds(vm.boundsLayer.getBounds());
                 routing.setWaypoints([]);
-            },
-            showPanle: function () {
-                this._showPanel = true;
-            },
-            hidePanel: function () {
-                this._showPanel = false;
-            },
+            }
         }
         
 
@@ -907,8 +941,10 @@ class GMap {
         vm.helpers({
             stations() {
                 let query = Stations.find({});
+                let count = 0;
                 vm.stationHandler = query.observeChanges({
                         added: function (id, station) {
+                            //count ++ ;
                             station._id = id;
                             
                             vm.markers[id] =  L.marker([station.cord.lat,station.cord.lng],{zIndexOffset : 90});
@@ -921,13 +957,56 @@ class GMap {
                             vm._stations[id] = station;
                             vm._stations[id].like = Meteor.user().profile.likes[id]?Meteor.user().profile.likes[id]:0;
                             
+                            vm._stations[id].updateDistance = function(callback){
+                                getDistance(L.latLng(vm.current.latitude,vm.current.longitude),L.latLng(this.cord.lat,this.cord.lng),
+                                (err,distance,duration)=>{
+                                    this.distance = distance;
+                                    this.duration = duration;
+                                    callback();
+                                });
+                            }
+                                                        
                             vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(new L.Icon.Default());   
-                            vm._sortedStations = orderStationsFilter(vm._stations,vm.settingsPanel.getOrderBy().value)
-                            vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(vm.firstStationIcon);
+                           
+                            
+                            vm._stations[id].updateDistance(()=>{
+                                count++;
+                                if(query.count() == count){
+                                       console.log(query.count() + " "+count)
+                                       $scope.$apply(()=>{
+                                        vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setZIndexOffset(90);
+                                        vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(new L.Icon.Default());
+                                        vm._sortedStations = orderStationsFilter(vm._stations,vm.settingsPanel.getOrderBy().value)
+                                        vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(vm.firstStationIcon);
+                                        vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setZIndexOffset(100);
+                                       }) 
+                                 }
+                            })
+                           /* getDistance(L.latLng(vm.current.latitude,vm.current.longitude),L.latLng(station.cord.lat,station.cord.lng),
+                                (err,distance,duration)=>{
+                                    count++;
+                                    vm._stations[id].distance = distance;
+                                    vm._stations[id].duration = duration;
+                                    if(query.count() == count){
+                                        console.log(query.count() + " "+count)
+                                       $scope.$apply(()=>{
+                                        vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setZIndexOffset(90);
+                                        vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(new L.Icon.Default());
+                                        vm._sortedStations = orderStationsFilter(vm._stations,vm.settingsPanel.getOrderBy().value)
+                                        vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(vm.firstStationIcon);
+                                        vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setZIndexOffset(100);
+                                       }) 
+                                    }
+                                }
+                            );*/
                            
                             vm.stationList.globaleLikes+= station.likes;
-                            
-                            
+                            /*
+                            if(query.count() == count){
+                                 vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(new L.Icon.Default());
+                                 vm._sortedStations = orderStationsFilter(vm._stations,vm.settingsPanel.getOrderBy().value)
+                                 vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(vm.firstStationIcon);
+                            }*/
                         },
                         changed(id,station){                            
                             for (var property in station) {
@@ -937,19 +1016,23 @@ class GMap {
                                 vm._stations[id][property] = station[property]
                             }
                             
+                            vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setZIndexOffset(90);
                             vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(new L.Icon.Default());   
                             vm._sortedStations = orderStationsFilter(vm._stations,vm.settingsPanel.getOrderBy().value)
-                            vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(vm.firstStationIcon);                                                          
+                            vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(vm.firstStationIcon);  
+                            vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setZIndexOffset(100);                                                        
                         },
                         removed: function (id) {
+                            count--;
                             map.removeLayer(vm.markers[id]);
                             vm.stationList.globaleLikes-= vm._stations[id]["likes"];
                             vm._stations[id] = undefined;
                             
+                            vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setZIndexOffset(90);
                             vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(new L.Icon.Default());   
                             vm._sortedStations = orderStationsFilter(vm._stations,vm.settingsPanel.getOrderBy().value)
                             vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(vm.firstStationIcon);
-                            
+                            vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setZIndexOffset(100);
                             //vm.boundsLayer.removeLayer(vm.markers[id]);
                             
                             vm.markers[id] = undefined;
