@@ -1,0 +1,3 @@
+SpeechRecognition@https://github.com/macdonst/SpeechRecognitionPlugin.git#ba1b3e467445482eaca692a7836c108476b9451e
+SpeechSynthesis@https://github.com/macdonst/SpeechSynthesisPlugin.git#de7a0e3730805f0becbf60bb9df909685e831ee9
+TTS@https://github.com/vilic/cordova-plugin-tts.git#eb38e2bd9b25c384cb5c48329cba4b9ae9536b67

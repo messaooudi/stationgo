@@ -143,9 +143,20 @@ class GMap {
                 var formatter = new L.Routing.Formatter({language : 'fr'});
               
                 $scope.$apply(()=>{                     
-                     vm.direction.text = formatter.formatInstruction(instr[(instr.length <3)?1:0])+" ("+formatter.formatDistance(instr[0].distance)+")";
+                    vm.direction.text = formatter.formatInstruction(instr[(instr.length <3)?1:0])+" ("+formatter.formatDistance(instr[0].distance)+")";
+                       
+                        
                 })
-
+                
+                        /*TTS.speak({
+                            text: formatter.formatInstruction(instr[(instr.length <3)?1:0]),
+                            locale: 'fr-FR',
+                            rate: 1
+                        }, function () {
+                           // alert('success');
+                        }, function (reason) {
+                            alert(reason);
+                        });*/
             });
             
             routing.addTo(map); 
@@ -253,6 +264,23 @@ class GMap {
 
             click: function () {
                 vm.sideBarPanel.toggle();
+                    /*    
+                    var recognition = new webkitSpeechRecognition();    
+                    recognition.lang = 'fr-FR';
+                    recognition.continuous = true;
+                    recognition.maxAlternatives = 3;
+                    recognition.onresult = function(event) {
+                        if (event.results.length > 0) {
+                            let text = event.results[0][0].transcript;
+                            alert(text)
+                           // recognition.start();
+                        }else{
+                            alert('vide')
+                        }
+                    };
+             
+                    recognition.start();
+                    */
             },
             show: function () {
                 this._show = true;
@@ -447,7 +475,7 @@ class GMap {
         })       
 
         Tracker.autorun(() => {
-            let pos = vm.current;
+            let pos =  vm.getReactively('current');//vm.current;
             let bounds = { center: [pos.longitude, pos.latitude], radius: 0.000621371 * vm.radiusPanel.getRadius() };
 
             if(vm.sideBarPanel.getShowOwnerStations()){

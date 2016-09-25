@@ -5,3 +5,4 @@ App.info({
   author: 'MESSAOUDI Oussama',
   email: 'messaoudi.oussama.in@gmail.com',
 });
+App.accessRule('*')
