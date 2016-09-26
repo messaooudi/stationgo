@@ -16,7 +16,7 @@ import { Session } from 'meteor/session';
 import { Meteor } from 'meteor/meteor';
 import { Tracker } from 'meteor/tracker'
 import { Stations } from '../../../api/stations';
-
+import { globaleGramma } from '../../../api/voiceGramma';
 
 import mobileTemplate from './mobile.html';
 import webTemplate from './web.html';
@@ -118,7 +118,7 @@ class GMap {
         
         vm.lastPosition = vm.current;
        
-        
+        let oldSegmentIndex = 100000;
         map.once('load', () => {
             L.control.zoom({
                 position:'topright'
@@ -139,16 +139,16 @@ class GMap {
             routing.on('routeselected', function(e) {
                 //var coord = e.route.coordinates;
                 var instr = e.route.instructions;
-                
+
                 var formatter = new L.Routing.Formatter({language : 'fr'});
               
                 $scope.$apply(()=>{                     
                     vm.direction.text = formatter.formatInstruction(instr[(instr.length <3)?1:0])+" ("+formatter.formatDistance(instr[0].distance)+")";
-                       
-                        
+                    console.log(JSON.stringify(e.route))    
                 })
-                
-                        /*TTS.speak({
+                console.log(instr[0].index+" : "+oldSegmentIndex);
+                if(instr[0].index != oldSegmentIndex){
+                    TTS.speak({
                             text: formatter.formatInstruction(instr[(instr.length <3)?1:0]),
                             locale: 'fr-FR',
                             rate: 1
@@ -156,7 +156,9 @@ class GMap {
                            // alert('success');
                         }, function (reason) {
                             alert(reason);
-                        });*/
+                        });
+                }
+                oldSegmentIndex = instr[0].index
             });
             
             routing.addTo(map); 
@@ -255,32 +257,24 @@ class GMap {
                 Meteor.users.update({ _id: Meteor.user()._id }, { $set: { 'profile.radius': this.radius } });
             }
         }
-
-            
-            
+                    
         //Partie sideBar 
         vm.sideBarTrigger = {
             _show: true,
 
             click: function () {
-                vm.sideBarPanel.toggle();
-                    /*    
-                    var recognition = new webkitSpeechRecognition();    
-                    recognition.lang = 'fr-FR';
-                    recognition.continuous = true;
-                    recognition.maxAlternatives = 3;
-                    recognition.onresult = function(event) {
-                        if (event.results.length > 0) {
-                            let text = event.results[0][0].transcript;
-                            alert(text)
-                           // recognition.start();
-                        }else{
-                            alert('vide')
-                        }
-                    };
-             
-                    recognition.start();
-                    */
+                vm.sideBarPanel.toggle(); 
+                if(Meteor.isCordova){
+                TTS.speak({
+                            text: "que puis-je faire pour vous, "+Meteor.user().profile.lastName,
+                            locale: 'fr-FR',
+                            rate: 1
+                        }, function () {
+                                startVoiceRecognition();
+                        }, function (reason) {
+                               startVoiceRecognition();
+                        });
+                }
             },
             show: function () {
                 this._show = true;
@@ -940,6 +934,129 @@ class GMap {
         Tracker.autorun(() => {
             vm.connectionToast.setShow(!Meteor.status().connected)
         })
+        
+        
+        function voiceIs(scenario , text){
+            let gramma = globaleGramma()[scenario];
+            let isTrue = false;
+            for (let i = 0; i < gramma.length; i++) {
+                for (let j = 0; j < gramma[i].length; j++) {
+                    isTrue = isTrue || text.includes(gramma[i][j]);
+                    if (isTrue)
+                        break;
+                }
+                if (!isTrue)
+                    return false;
+
+                isTrue = false;
+            }
+            return true;
+        }
+        
+        function voiceIsNearestStation(text) {
+            let stationGramma = ['station', 'stations'];
+            let itineraireGramma = ['itinéraire', 'chemin', 'trajet'];
+            let procheGramma = ['proche'];
+            let gramma = [stationGramma, itineraireGramma, procheGramma];
+            let isTrue = false;
+            for (let i = 0; i < gramma.length; i++) {
+                for (let j = 0; j < gramma[i].length; j++) {
+                    isTrue = isTrue || text.includes(gramma[i][j]);
+                    if (isTrue)
+                        break;
+                }
+                if (!isTrue)
+                    return false;
+
+                isTrue = false;
+            }
+            return true;
+        }
+        
+        
+        function startVoiceRecognition() {
+            var recognition = new SpeechRecognition();
+            recognition.lang = 'fr-FR';
+            recognition.start();
+            recognition.onresult = function (event) {
+                if (event.results.length > 0) {
+                    let text = event.results[0][0].transcript;
+                    if (voiceIs('showNearest',text)) {
+                        let station = orderStationsFilter(vm._stations, 'distance.value')[0];
+                        vm.sideBarPanel.hide();
+                        TTS.speak({
+                            text: "la station la plus proche est : " + station.nom + ". distance actuel  " + station.distance.text,
+                            locale: 'fr-FR',
+                            rate: 1
+                        }, function () {
+                            // alert('success');
+                            vm.stationList.go(station);
+                        }, function (reason) {
+                            alert(reason);
+                        });
+
+                    } else if (voiceIs('showCheapestGasoil',text)) {
+                        let station = orderStationsFilter(vm._stations, 'gasoil.prix')[0];
+                        vm.sideBarPanel.hide();
+                        TTS.speak({
+                            text: "station " + station.nom + ", prix d'essence est, " + station.gasoil.prix+" Dihram",
+                            locale: 'fr-FR',
+                            rate: 1
+                        }, function () {
+                            // alert('success');
+                            vm.stationList.go(station);
+                        }, function (reason) {
+                            alert(reason);
+                        });
+                    } else if (voiceIs('showCheapestEssence',text)) {
+                        let station = orderStationsFilter(vm._stations, 'essence.prix')[0];
+                        vm.sideBarPanel.hide();
+                        TTS.speak({
+                            text: "station " + station.nom + ", prix d'essence est, " + station.essence.prix+" Dihram",
+                            locale: 'fr-FR',
+                            rate: 1
+                        }, function () {
+                            // alert('success');
+                            vm.stationList.go(station);
+                        }, function (reason) {
+                            alert(reason);
+                        });
+                    } else if (voiceIs('infoCheapestGasoil',text)) {
+                        vm.sideBarPanel.hide();
+                        let station = orderStationsFilter(vm._stations, 'gasoil.prix')[0];
+                        TTS.speak({
+                            text: "le prix le moin cher est " + station.gasoil.prix + " Dirham, chez la station : " + station.nom,
+                            locale: 'fr-FR',
+                            rate: 1
+                        }, function () {
+                            // alert('success');
+                                   
+                        }, function (reason) {
+                            alert(reason);
+                        });
+                    } else if (voiceIs('infoCheapestEssence',text)) {
+                        vm.sideBarPanel.hide();
+                        let station = orderStationsFilter(vm._stations, 'essence.prix')[0];
+                        TTS.speak({
+                            text: "le prix le moin cher est " + station.gasoil.prix + " Dirham, chez la station : " + station.nom,
+                            locale: 'fr-FR',
+                            rate: 1
+                        }, function () {
+                            // alert('success');
+                                   
+                        }, function (reason) {
+                            alert(reason);
+                        });
+                    } else if (text.includes('masquer') && text.includes('station') && text.includes('fermer')) {
+                        vm.settingsPanel.setShowCloseStation(false)
+                    }
+                } else {
+                    alert('vide')
+                }
+            };
+        }
+
+
 
     }
 }
