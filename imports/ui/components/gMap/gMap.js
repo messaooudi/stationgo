@@ -20,7 +20,7 @@ import { globaleGramma } from '../../../api/voiceGramma';
 
 import mobileTemplate from './mobile.html';
 import webTemplate from './web.html';
-import './gMap.css';
+import './gMap.css'; 
 
 
 import { name as OrderStations } from '../../filters/orderStations';
@@ -144,9 +144,7 @@ class GMap {
               
                 $scope.$apply(()=>{                     
                     vm.direction.text = formatter.formatInstruction(instr[(instr.length <3)?1:0])+" ("+formatter.formatDistance(instr[0].distance)+")";
-                    console.log(JSON.stringify(e.route))    
                 })
-                console.log(instr[0].index+" : "+oldSegmentIndex);
                 if(instr[0].index != oldSegmentIndex){
                     TTS.speak({
                             text: formatter.formatInstruction(instr[(instr.length <3)?1:0]),
@@ -264,17 +262,6 @@ class GMap {
 
             click: function () {
                 vm.sideBarPanel.toggle(); 
-                if(Meteor.isCordova){
-                TTS.speak({
-                            text: "que puis-je faire pour vous, "+Meteor.user().profile.lastName,
-                            locale: 'fr-FR',
-                            rate: 1
-                        }, function () {
-                                startVoiceRecognition();
-                        }, function (reason) {
-                               startVoiceRecognition();
-                        });
-                }
             },
             show: function () {
                 this._show = true;
@@ -854,6 +841,8 @@ class GMap {
                 let count = 0;
                 vm.stationHandler = query.observeChanges({
                         added: function (id, station) {
+                            vm.loadingCube.setShow(true);
+                            
                             station._id = id;
                             
                             vm.markers[id] =  L.marker([station.cord.lat,station.cord.lng],{zIndexOffset : 90});
@@ -876,6 +865,7 @@ class GMap {
                             vm._stations[id].updateDistance(()=>{
                                 count++;
                                 if(query.count() == count){
+                                      vm.loadingCube.setShow(false);
                                        $scope.$apply(()=>{
                                         vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setZIndexOffset(90);
                                         vm.markers[vm._sortedStations[0]?vm._sortedStations[0]._id:'null'].setIcon(new L.Icon.Default());
@@ -925,16 +915,49 @@ class GMap {
 
         vm.connectionToast = {
             _show: false,
-            setShow: function (val) {
+            text : '',
+            setShow: function (val,message) {
                 this._show = val;
+                this.text = message;
             },
+            setText:function(text){
+                this.text = text
+            }
         }
 
 
         Tracker.autorun(() => {
-            vm.connectionToast.setShow(!Meteor.status().connected)
+            vm.connectionToast.setShow(!Meteor.status().connected,'Verifier votre connection ... ')
         })
         
+        vm.loadingCube = {
+            _show: false,
+            setShow: function (val) {
+                this._show = val;
+            },
+        }
+        
+        
+        
+        vm.audioTrigger = {
+            _show: false,
+            setShow: function (val) {
+                this._show = val;
+            },
+            startRecognition: function(){
+               if(Meteor.isCordova){
+                TTS.speak({
+                            text: "que puis-je faire pour vous, "+Meteor.user().profile.lastName,
+                            locale: 'fr-FR',
+                            rate: 1
+                        }, function () {
+                                startVoiceRecognition();
+                        }, function (reason) {
+                               startVoiceRecognition();
+                        });
+                }
+            }
+        }
         
         function voiceIs(scenario , text){
             let gramma = globaleGramma()[scenario];

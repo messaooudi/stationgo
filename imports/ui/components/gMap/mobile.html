@@ -663,5 +663,30 @@
 -->
 
 <div id="connection-toast" ng-if="gMap.connectionToast._show">
-    <h5>verifier votre connexion</h5>
+    <h5>{{gMap.connectionToast.text}}</h5>
 </div>
+
+<!--
+    loadingCube = {
+        _show : boolean,
+        setShow : function,
+    }
+-->
+<div class="sk-folding-cube" ng-if="gMap.loadingCube._show">
+         <div class="sk-cube1 sk-cube"></div>
+         <div class="sk-cube2 sk-cube"></div>
+         <div class="sk-cube4 sk-cube"></div>
+         <div class="sk-cube3 sk-cube"></div>
+</div>
+
+<!--
+    audioTrigger = {
+        _show : boolean,
+        setShow : function,
+        startRecognition : function,
+    }
+-->
+
+<button id="audio-button" class="btn btn-primary"  ng-click="gMap.audioTrigger.startRecognition()">
+    <i class="fa fa-microphone" aria-hidden="true"></i>
+</button>
