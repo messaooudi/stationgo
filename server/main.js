@@ -19,7 +19,9 @@ Meteor.startup(() => {
     Meteor.methods({
         getDistance: function (origin, destination) {
             this.unblock();
+            //return Meteor.http.call('GET', 'http://router.project-osrm.org/route/v1/driving/13.388860,52.517037;13.397634,52.529407;13.428555,52.523219?overview=false')
             return Meteor.http.call('GET', 'https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&language=fr&origins=' + origin + '&destinations=' + destination + '&key=AIzaSyCopGumk0XmliwO-0dOdo974glwHXu_S2U', { timeout: 6000 })
+            
         }
     });
     Meteor.methods({

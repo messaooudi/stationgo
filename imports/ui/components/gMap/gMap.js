@@ -170,7 +170,10 @@ class GMap {
                     let ss = duration.getSeconds();
                     vm.direction.summary.totalTime = (hh > 0 ? hh + " heurs et " : "") + (mm > 0 ? mm + " minutes" : "") + ((hh == 0 && mm == 0) ? ss + " secondes." : ".");                                
                 })
-            })               
+            }) 
+            
+            
+                   
         }).setView([vm.current.latitude, vm.current.longitude], 13);
         L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v9/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWVzc2FvdWRpb3Vzc2FtYSIsImEiOiJjaXQ2MjBqdHQwMDFsMnhxYW9hOW9tcHZoIn0.uX-ZR_To6tzxUpXmaVKOnQ', {
         }).addTo(map);
@@ -880,7 +883,7 @@ class GMap {
                             vm.stationList.globaleLikes+= station.likes;
      
                         },
-                        changed(id,station){                            
+                        changed : function(id,station){                            
                             for (var property in station) {
                                  if(property == 'likes')
                                     vm.stationList.globaleLikes+= station.likes - vm._stations[id]['likes'];
