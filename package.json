@@ -12,8 +12,7 @@
     "bcrypt": "^0.8.7",
     "bootstrap-slider": "git+https://github.com/seiyria/bootstrap-slider.git",
     "dist": "^0.1.2",
-    "leaflet-routing-machine": "git+https://github.com/perliedman/leaflet-routing-machine.git",
-    "meteor-node-stubs": "~0.2.0",
-    "ngmap": "^1.17.6"
+    "leaflet-routing-machine": "^3.2.4",
+    "meteor-node-stubs": "~0.2.0"
   }
 }
