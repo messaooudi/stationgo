@@ -11,7 +11,7 @@
 			"name": "Launch localhost with sourcemaps",
 			"type": "chrome",
 			"request": "launch",
-			"url": "http://localhost/mypage.html",
+			"url": "http://localhost:3000",
 			"sourceMaps": true,
 			"webRoot": "wwwroot"
 		},
@@ -19,7 +19,7 @@
 			"name": "Attach",
 			"type": "chrome",
 			"request": "attach",
-			"port": 9222
+			"port": 3000
 		}
 	]
 }
