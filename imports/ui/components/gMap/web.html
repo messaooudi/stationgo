@@ -452,7 +452,7 @@
                         <div class="panel-footer clearfix">
                             <button ng-if="gMap.user._id != station.owner" id="report-button" class="btn btn-default pull-right" ng-click="gMap.stationList.reclamer(station)">Réclamer</button>
                             <button ng-if="gMap.user._id == station.owner&&station.reclamation.length>0" id="reclamation-button" class="btn btn-danger pull-left" ng-click="gMap.stationList.showReclamations(station)">{{station.reclamation.length}} Réclamation{{station.reclamation.length>1?'s':''}}</button>
-                            <div ng-if="gMap.user._id != station.owner"" class="stars pull-left">
+                            <div ng-if="gMap.user._id != station.owner" class="stars pull-left">
                                 <form>
                                     <input class="star star-5" id="star-5{{$index}}" type="radio" name="star" ng-checked="station.like == 5"  ng-click="gMap.stationList.setLike(station,5)"/>
                                     <label class="star star-5" for="star-5{{$index}}"></label>

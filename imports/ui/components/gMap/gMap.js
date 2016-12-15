@@ -130,7 +130,7 @@ class GMap {
             }).addTo(map);
             vm.currentMarker.addTo(map)
 
-            osrmBackEnd = L.Routing.osrmv1({ serviceUrl: 'http://127.0.0.1:5000/route/v1', useHints: false });
+            osrmBackEnd = L.Routing.osrmv1({useHints: false });//serviceUrl: 'http://127.0.0.1:5000/route/v1', useHints: false });
 
             routing = L.Routing.control({
                 router: osrmBackEnd,
@@ -354,7 +354,7 @@ class GMap {
                     this.dep.changed();
                     Meteor.users.update({ _id: Meteor.user()._id }, { $set: { 'profile.orderBy': orderBy } });
 
-                    vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setIcon(new L.Icon.Default());
+                    vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setIcon(defaultIcon);
                     vm._sortedStations = orderStationsFilter(vm._stations, orderBy.value)
 
                     let icon = L.AwesomeMarkers.icon({
@@ -456,7 +456,7 @@ class GMap {
                         if (vm.stations.length == count) {
                             $scope.$apply(() => {
                                 vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setZIndexOffset(90);
-                                vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setIcon(new L.Icon.Default());
+                                vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setIcon(defaultIcon);
                                 vm._sortedStations = orderStationsFilter(vm._stations, vm.settingsPanel.getOrderBy().value)
                                 vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setIcon(vm.firstStationIcon);
                                 vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setZIndexOffset(100);
@@ -859,11 +859,11 @@ class GMap {
 
                         station._id = id;
 
-                        vm.markers[id] = L.marker([station.cord.lat, station.cord.lng], { zIndexOffset: 90 });
+                        vm.markers[id] = L.marker([station.cord.lat, station.cord.lng], {icon : defaultIcon, zIndexOffset: 90 });
                         vm.markers[id].addTo(map);
                         vm.markers[id].station = station;
                         vm.markers[id].on('click', markerClickHandler)
-                        vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setIcon(new L.Icon.Default());
+                        vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setIcon(defaultIcon);
 
                         vm._stations[id] = station;
                         vm._stations[id].like = Meteor.user().profile.likes[id] ? Meteor.user().profile.likes[id] : 0;
@@ -882,7 +882,7 @@ class GMap {
                                 vm.loadingCube.setShow(false);
                                 $scope.$apply(() => {
                                     vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setZIndexOffset(90);
-                                    vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setIcon(new L.Icon.Default());
+                                    vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setIcon(defaultIcon);
                                     vm._sortedStations = orderStationsFilter(vm._stations, vm.settingsPanel.getOrderBy().value)
                                     vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setIcon(vm.firstStationIcon);
                                     vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setZIndexOffset(100);
@@ -903,7 +903,7 @@ class GMap {
                         }
 
                         vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setZIndexOffset(90);
-                        vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setIcon(new L.Icon.Default());
+                        vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setIcon(defaultIcon);
                         vm._sortedStations = orderStationsFilter(vm._stations, vm.settingsPanel.getOrderBy().value)
                         vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setIcon(vm.firstStationIcon);
                         vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setZIndexOffset(100);
@@ -915,7 +915,7 @@ class GMap {
                         vm._stations[id] = undefined;
 
                         vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setZIndexOffset(90);
-                        vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setIcon(new L.Icon.Default());
+                        vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setIcon(defaultIcon);
                         vm._sortedStations = orderStationsFilter(vm._stations, vm.settingsPanel.getOrderBy().value)
                         vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setIcon(vm.firstStationIcon);
                         vm.markers[vm._sortedStations[0] ? vm._sortedStations[0]._id : 'null'].setZIndexOffset(100);
