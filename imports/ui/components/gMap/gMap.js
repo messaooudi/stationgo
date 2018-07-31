@@ -110,7 +110,7 @@ class GMap {
 
         vm.helpers({
             current() {
-                let pos = Location.getReactivePosition() || Location.getLastPosition() || { latitude: 0, longitude: 0 };
+                let pos = Location.getReactivePosition() || Location.getLastPosition() || { latitude: 48.868935768572946, longitude: 2.3385325136108577 };
                 vm.currentMarker.setLatLng([pos.latitude, pos.longitude]);
                 vm.currentMarker.update();
                 if (vm.direction && vm.direction._show) {
